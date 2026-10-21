@@ -1,6 +1,52 @@
 'use strict';
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d'),heroes=window.CHARACTERS||[];
 const msg=document.querySelector('#msg');
+
+const featured = {
+ eisho:{label:'黎明星',hair:'#272b42',skin:'#ffcfab',outfit:'#fff1a3',motif:'✦',aura:'#facc15',face:0},
+ shugo:{label:'紅蓮雷光',hair:'#893c32',skin:'#f5b893',outfit:'#ef4444',motif:'ϟ',aura:'#fb923c',face:1},
+ mitoma:{label:'蒼風疾走',hair:'#243b64',skin:'#f2c8ad',outfit:'#38bdf8',motif:'≈',aura:'#60a5fa',face:2},
+ issei:{label:'月影策略',hair:'#29213d',skin:'#f0be9f',outfit:'#a78bfa',motif:'☾',aura:'#c084fc',face:3},
+ yui:{label:'氷花の癒し',hair:'#52657d',skin:'#fbd6c3',outfit:'#bae6fd',motif:'❄',aura:'#93c5fd',face:4},
+ soyon:{label:'翠風の調べ',hair:'#302c39',skin:'#f6c8b2',outfit:'#86efac',motif:'❧',aura:'#34d399',face:5},
+ ema:{label:'星羽の絆',hair:'#6b4339',skin:'#f7c59e',outfit:'#fde68a',motif:'✧',aura:'#fbbf24',face:6},
+ 'unit-035':{label:'静寂の共鳴',hair:'#b6c3d9',skin:'#f5d5c5',outfit:'#818cf8',motif:'♫',aura:'#818cf8',face:7}
+};
+// 主要8人はオリジナルのデフォルメ人物画。実在の本人の肖像ではありません。
+function portrait(c,x,y,r,active=true){
+ const art=featured[c.id];
+ ctx.save();ctx.translate(x,y);
+ const aura=art?.aura||c.color||'#fbbf24',t=performance.now()/600;
+ ctx.shadowColor=aura;ctx.shadowBlur=active?25:8;
+ ctx.fillStyle='#172638';ctx.strokeStyle=aura;ctx.lineWidth=active?4:2;
+ ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+ if(!art){ctx.fillStyle='#fff';ctx.font='bold '+Math.round(r*.95)+'px system-ui';ctx.textAlign='center';ctx.fillText(c.icon||'✦',0,r*.31);ctx.restore();return}
+ ctx.save();ctx.beginPath();ctx.arc(0,0,r-3,0,Math.PI*2);ctx.clip();
+ ctx.fillStyle=aura+'40';ctx.fillRect(-r,-r,2*r,2*r);
+ // 肩、マント、衣装
+ ctx.fillStyle=art.outfit;ctx.beginPath();ctx.ellipse(0,r*.9,r*.74,r*.64,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=art.skin;ctx.beginPath();ctx.ellipse(0,-r*.05,r*.44,r*.53,0,0,Math.PI*2);ctx.fill();
+ // 主要キャラごとに前髪と髪のシルエットを変える
+ ctx.fillStyle=art.hair;ctx.beginPath();ctx.ellipse(0,-r*.43,r*.54,r*.31,art.face%2?.12:-.12,0,Math.PI*2);ctx.fill();
+ for(let i=0;i<3+(art.face%3);i++){let xx=(-.45+i*.3)*r;ctx.beginPath();ctx.moveTo(xx,-r*.68);ctx.lineTo(xx+r*.16,-r*(.19+(i%2)*.13));ctx.lineTo(xx+r*.35,-r*.57);ctx.fill()}
+ // 目と表情
+ ctx.fillStyle='#152033';for(const sx of [-1,1]){ctx.beginPath();ctx.ellipse(sx*r*.18,-r*.03,r*.042,r*.07,0,0,Math.PI*2);ctx.fill()}
+ ctx.strokeStyle='#923e4a';ctx.lineWidth=Math.max(1,r*.035);ctx.beginPath();ctx.arc(0,r*.13,r*.12,0,Math.PI);ctx.stroke();
+ ctx.restore();
+ ctx.fillStyle=aura;ctx.beginPath();ctx.arc(r*.72,-r*.72,r*.24,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#111827';ctx.font='bold '+Math.round(r*.4)+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(art.motif,r*.72,-r*.72);
+ ctx.restore();
+}
+function paintParty(){
+ const root=document.querySelector('#party-hud');if(!root)return;
+ root.replaceChildren();
+ roster.forEach((n,i)=>{const c=heroes[n],a=featured[c?.id],item=document.createElement('div');item.className='party-card'+(i===turnIndex?' current':'');
+ const portraitChip=document.createElement('span');portraitChip.className='party-avatar';portraitChip.textContent=a?.motif||c?.icon||'✦';portraitChip.style.background=a?.aura||c?.color||'#64748b';
+ const label=document.createElement('span');label.textContent=(i+1)+'P '+(c?.name||'');
+ item.append(portraitChip,label);root.append(item);
+ });
+}
+
 const partyRoot=document.querySelector('#party-selects');
 const roster=[0,1,2,3],selectors=[];
 let turnIndex=0;
@@ -15,7 +61,7 @@ for(let slot=0;slot<4;slot++){
 function currentHero(){return heroes[roster[turnIndex]]||heroes[0]||{icon:'✦',name:'主人公',color:'#fbbf24'}}
 function nextTurn(){turnIndex=(turnIndex+1)%4;setText()}
 const W=680,H=820,base={x:340,y:730};let stage=1,shots=0,angle=-Math.PI/2,drag=null,ball=null,enemies=[],particles=[],running=false,won=false,last=0;
-const radius=20;function setText(){document.querySelector('#stage').textContent=stage;document.querySelector('#remaining').textContent=enemies.filter(e=>e.hp>0).length;document.querySelector('#shots').textContent=shots;document.querySelector('#turn').textContent=turnIndex+1;document.querySelector('#active-hero').textContent=currentHero().name}
+const radius=20;function setText(){document.querySelector('#stage').textContent=stage;document.querySelector('#remaining').textContent=enemies.filter(e=>e.hp>0).length;document.querySelector('#shots').textContent=shots;document.querySelector('#turn').textContent=turnIndex+1;document.querySelector('#active-hero').textContent=currentHero().name;paintParty()}
 function reset(s=1){stage=s;turnIndex=0;shots=0;won=false;running=false;ball=null;drag=null;msg.textContent='キャラを引っ張って離してね！';enemies=[];const count=2+stage;for(let i=0;i<count;i++){enemies.push({x:100+(i%3)*235+(stage%2)*10,y:145+Math.floor(i/3)*155,r:29,hp:1+(stage===3?1:0),color:['#f87171','#c084fc','#4ade80'][i%3]})}setText()}
 function launch(vx,vy){if(running||won)return;const power=Math.hypot(vx,vy);if(power<1)return;let scale=Math.min(18,power);ball={x:base.x,y:base.y,vx:vx/power*scale,vy:vy/power*scale,r:radius,life:0};running=true;shots++;msg.textContent='ショット！ 敵に当てよう';setText()}
 function pos(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height}}
@@ -30,5 +76,5 @@ function draw(){ctx.clearRect(0,0,W,H);const g=ctx.createLinearGradient(0,0,0,H)
 ctx.strokeStyle='rgba(255,255,255,.07)';for(let x=50;x<W;x+=68){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=60;y<H;y+=68){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
 enemies.forEach(e=>{if(e.hp<1)return;ctx.fillStyle=e.color;ctx.shadowColor=e.color;ctx.shadowBlur=20;ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#13233d';ctx.font='bold 21px system-ui';ctx.textAlign='center';ctx.fillText('✹',e.x,e.y+8);if(e.hp>1){ctx.fillStyle='#fff';ctx.font='bold 14px system-ui';ctx.fillText('HP '+e.hp,e.x,e.y-42)}});
 particles.forEach(p=>{ctx.strokeStyle='rgba(251,191,36,'+(p.t/25)+')';ctx.lineWidth=5;ctx.beginPath();ctx.arc(p.x,p.y,(26-p.t)*2,0,Math.PI*2);ctx.stroke()});
-const c=currentHero();const x=ball?ball.x:base.x,y=ball?ball.y:base.y;ctx.shadowBlur=30;ctx.shadowColor=c.color||'#fbbf24';ctx.fillStyle=c.color||'#fbbf24';ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 23px system-ui';ctx.fillText(c.icon||'✦',x,y+8);if(drag){ctx.setLineDash([10,8]);ctx.strokeStyle='#fcd34d';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(base.x,base.y);ctx.lineTo(base.x+(base.x-drag.x)*1.6,base.y+(base.y-drag.y)*1.6);ctx.stroke();ctx.setLineDash([])}else if(!running){ctx.strokeStyle='#fde68a88';ctx.lineWidth=3;ctx.beginPath();ctx.arc(base.x,base.y,45,0,Math.PI*2);ctx.stroke()}}
+const c=currentHero();const x=ball?ball.x:base.x,y=ball?ball.y:base.y;portrait(c,x,y,radius,true);if(drag){ctx.setLineDash([10,8]);ctx.strokeStyle='#fcd34d';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(base.x,base.y);ctx.lineTo(base.x+(base.x-drag.x)*1.6,base.y+(base.y-drag.y)*1.6);ctx.stroke();ctx.setLineDash([])}else if(!running){ctx.strokeStyle='#fde68a88';ctx.lineWidth=3;ctx.beginPath();ctx.arc(base.x,base.y,45,0,Math.PI*2);ctx.stroke()}}
 function frame(now){const dt=Math.min(34,now-(last||now));last=now;if(running)tick(dt);draw();requestAnimationFrame(frame)}reset();requestAnimationFrame(frame);
