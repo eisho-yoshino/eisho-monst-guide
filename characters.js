@@ -1398,3 +1398,22 @@ const EXPANSION_CHARACTERS = [
 ];
 window.CHARACTERS.push(...EXPANSION_CHARACTERS);
 window.CHARACTERS.forEach((c,i)=>{ c.number=i+1; c.group=c.group||c.chapter; c.friendship=c.friendship||[]; });
+
+// 第3弾：全61人の架空のゲーム内能力。現実の人物の評価ではありません。
+window.CHARACTERS.forEach((c,i)=>{
+  const epithets=["黎明","蒼天","星巡","翠嵐","紅蓮","月影","雷光","疾風","銀河","残響","氷晶","花霞","獅子","流星","光輪","夜明","深緑","水鏡","陽炎","天空","万象"];
+  const endings=["ブレイク","リフレイン","スマッシュ","コンチェルト","ドライブ","スパーク","インパクト","ハーモニー","バースト","ブレイバー","ストライク","ノヴァ","ラッシュ","シンフォニー","ガーディアン","エクリプス","フェニックス","トリガー","クロス","フラッシュ","インフィニティ"];
+  const effects=["仲間に触れるたび友情威力が上昇","弱点攻撃時に追加ダメージ","味方全体のスピードを強化","ダメージを軽減し反撃","敵の防御を一時的に低下","HPを回復し状態異常を解除","複数の敵へ追撃を放つ"];
+  const combos=["追従型エナジーリング","拡散スターショット","反射レーザーストリーム","回復フィールド","貫通スパーク","超強ウェーブ","防御アップバースト","ホーミングコメット","サークルブレード","加速オーラ"];
+  const prefix=epithets[i%epithets.length];
+  const suffix=endings[Math.floor(i/epithets.length)%endings.length];
+  const no=String(i+1).padStart(2,'0');
+  c.ability=prefix+'の加護 / '+['超速連携','弱点看破','回復支援','防壁展開','友情強化','反撃態勢','機動支援'][i%7];
+  c.friendshipCombo=prefix+'・'+combos[i%combos.length]+' '+no;
+  c.friendshipEffect=effects[(i+3)%effects.length]+'。';
+  c.strikeShot=prefix+'・'+suffix+' '+no;
+  c.strikeEffect=effects[i%effects.length]+'。'+(12+(i%13))+'ターンで使用可能。';
+  c.skill=c.strikeShot;
+  c.skillTurns=12+(i%13);
+  c.strengths=[c.friendshipEffect,c.strikeEffect];
+});
