@@ -10,7 +10,7 @@ const featured = {
  yui:{label:'氷花の癒し',hair:'#52657d',skin:'#fbd6c3',outfit:'#bae6fd',motif:'❄',aura:'#93c5fd',face:4},
  soyon:{label:'翠風の調べ',hair:'#302c39',skin:'#f6c8b2',outfit:'#86efac',motif:'❧',aura:'#34d399',face:5},
  ema:{label:'星羽の絆',hair:'#6b4339',skin:'#f7c59e',outfit:'#fde68a',motif:'✧',aura:'#fbbf24',face:6},
- 'unit-032':{label:'静寂の共鳴',hair:'#b6c3d9',skin:'#f5d5c5',outfit:'#818cf8',motif:'♫',aura:'#818cf8',face:7}
+ 'unit-035':{label:'静寂の共鳴',hair:'#b6c3d9',skin:'#f5d5c5',outfit:'#818cf8',motif:'♫',aura:'#818cf8',face:7}
 };
 // 主要8人はオリジナルのデフォルメ人物画。実在の本人の肖像ではありません。
 function portrait(c,x,y,r,active=true){
