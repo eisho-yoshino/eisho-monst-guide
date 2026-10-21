@@ -78,3 +78,51 @@ enemies.forEach(e=>{if(e.hp<1)return;ctx.fillStyle=e.color;ctx.shadowColor=e.col
 particles.forEach(p=>{ctx.strokeStyle='rgba(251,191,36,'+(p.t/25)+')';ctx.lineWidth=5;ctx.beginPath();ctx.arc(p.x,p.y,(26-p.t)*2,0,Math.PI*2);ctx.stroke()});
 const c=currentHero();const x=ball?ball.x:base.x,y=ball?ball.y:base.y;portrait(c,x,y,radius,true);if(drag){ctx.setLineDash([10,8]);ctx.strokeStyle='#fcd34d';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(base.x,base.y);ctx.lineTo(base.x+(base.x-drag.x)*1.6,base.y+(base.y-drag.y)*1.6);ctx.stroke();ctx.setLineDash([])}else if(!running){ctx.strokeStyle='#fde68a88';ctx.lineWidth=3;ctx.beginPath();ctx.arc(base.x,base.y,45,0,Math.PI*2);ctx.stroke()}}
 function frame(now){const dt=Math.min(34,now-(last||now));last=now;if(running)tick(dt);draw();requestAnimationFrame(frame)}reset();requestAnimationFrame(frame);
+
+(function setupLobby(){
+ const lobby=document.querySelector('#lobby'),battle=document.querySelector('#battle-section');
+ const grid=document.querySelector('#roster-grid'),preview=document.querySelector('#hero-preview'),formation=document.querySelector('#formation-preview');
+ const notice=document.querySelector('#lobby-msg');
+ let selected=0;
+ const favorites=['eisho','shugo','issei','yui','soyon','ema','mitoma','unit-035'];
+ const featuredIndices=favorites.map(id=>heroes.findIndex(c=>c.id===id)).filter(i=>i>=0);
+ function art(c){return featured[c?.id]||{motif:c?.icon||'✦',aura:c?.color||'#6882ae'}}
+ function showPreview(){
+  const c=heroes[selected],a=art(c);if(!c)return;
+  preview.replaceChildren();
+  const glyph=document.createElement('div');glyph.className='preview-glyph';glyph.style.setProperty('--accent',a.aura);glyph.textContent=a.motif;
+  const name=document.createElement('h3');name.textContent=c.name;
+  const sub=document.createElement('p');sub.textContent=(c.element||'光')+'属性 ・ '+(c.role||'バランス')+' ・ ★'+(c.rarity||6);
+  preview.append(glyph,name,sub);
+  for(const [label,val] of [['HP',c.hp||24500],['攻撃',c.attack||8700],['スピード',c.speed||400],['友情コンボ',c.friendshipCombo||'スターライト・リンク'],['SS',c.strikeShot||c.skill||'レボリューション・ソウル']]){
+   const line=document.createElement('div');line.className='statline';const l=document.createElement('span'),v=document.createElement('strong');l.textContent=label;v.textContent=String(val);line.append(l,v);preview.append(line);
+  }
+ }
+ function showRoster(){
+  grid.replaceChildren();
+  for(const i of featuredIndices){const c=heroes[i],a=art(c),btn=document.createElement('button');btn.type='button';btn.className='roster-card'+(selected===i?' selected':'');btn.style.setProperty('--accent',a.aura);
+   const glyph=document.createElement('span');glyph.className='glyph';glyph.textContent=a.motif;
+   const name=document.createElement('strong');name.textContent=c.name;
+   const meta=document.createElement('small');meta.textContent=(c.element||'光')+' / '+(c.role||'バランス');btn.append(glyph,name,meta);
+   btn.onclick=()=>{selected=i;showRoster();showPreview()};grid.append(btn);
+  }
+ }
+ function setSlot(slot,index){roster[slot]=index;selectors[slot].value=String(index);setText();renderFormation()}
+ function renderFormation(){
+  formation.replaceChildren();
+  for(let slot=0;slot<4;slot++){const row=document.createElement('div');row.className='formation-item';
+   const pos=document.createElement('b');pos.textContent=(slot+1)+'P';
+   const selection=document.createElement('select');selection.setAttribute('aria-label','出撃キャラ'+(slot+1));
+   heroes.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.name;selection.append(o)});
+   selection.value=String(roster[slot]);selection.onchange=()=>{if(running)return;setSlot(slot,Number(selection.value))};
+   row.append(pos,selection);formation.append(row);
+  }
+ }
+ function message(s){notice.textContent=s}
+ document.querySelector('#auto-party').onclick=()=>{featuredIndices.slice(0,4).forEach((idx,i)=>setSlot(i,idx));message('おすすめ編成を設定したよ！')};
+ document.querySelector('#save-party').onclick=()=>{try{localStorage.setItem('story-strike-roster',JSON.stringify(roster)) ;message('編成をこのブラウザに保存したよ！')}catch(e){message('保存できなかったため、この画面の編成を使ってね。')}};
+ document.querySelector('#deploy').onclick=()=>{lobby.hidden=true;battle.hidden=false;reset(1);window.scrollTo({top:0,behavior:'smooth'})};
+ document.querySelector('#back-lobby').onclick=()=>{if(running){message('ショットが終わってから戻ってね');return}battle.hidden=true;lobby.hidden=false;window.scrollTo({top:0,behavior:'smooth'})};
+ try{const saved=JSON.parse(localStorage.getItem('story-strike-roster')||'null');if(Array.isArray(saved)&&saved.length===4&&saved.every(n=>Number.isInteger(n)&&n>=0&&n<heroes.length)){saved.forEach((n,i)=>{roster[i]=n;selectors[i].value=String(n)})}}catch(e){}
+ setText();showRoster();showPreview();renderFormation();
+})();
